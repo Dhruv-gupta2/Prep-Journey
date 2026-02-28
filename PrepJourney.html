@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prep Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #060c1f;
+  --card: rgba(12,22,56,0.88);
+  --input: rgba(8,16,44,0.9);
+  --border: rgba(60,100,220,0.25);
+  --accent: #4f8dff;
+  --accent2: #a78bfa;
+  --text: #dde8ff;
+  --muted: #6678a8;
+  --white: #ffffff;
+}
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
+
+#login-page, #main-page {
+  position: fixed; inset: 0;
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+#login-page { opacity: 1; transform: scale(1); z-index: 10; pointer-events: all; }
+#main-page  { opacity: 0; transform: scale(1.04); z-index: 1;  pointer-events: none; }
+body.show-main #login-page { opacity: 0; transform: scale(0.96); pointer-events: none; }
+body.show-main #main-page  { opacity: 1; transform: scale(1);    pointer-events: all; z-index: 10; }
+
+/* ═══════════════════════════════════════
+   LOGIN PAGE STYLES
+═══════════════════════════════════════ */
+#login-page {
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 60%, #0d1f6022 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 20%, #1a0a4422 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 70% 80%, #0a2a5522 0%, transparent 60%),
+    linear-gradient(135deg, #060c1f 0%, #0b1535 50%, #060c1f 100%);
+}
+#login-page::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(79,141,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,141,255,0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+.login-wrapper { position: relative; z-index: 1; display: flex; height: 100vh; width: 100vw; }
+.left { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.orb { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; opacity: 0.18; }
+.orb1 { width: 320px; height: 320px; background: radial-gradient(circle, #4f8dff, #a78bfa); top: 5%; left: -60px; animation: orbDrift 8s ease-in-out infinite; }
+.orb2 { width: 220px; height: 220px; background: radial-gradient(circle, #38e8c6, #4f8dff); bottom: 10%; right: 10%; animation: orbDrift 10s ease-in-out infinite reverse 2s; }
+.orb3 { width: 160px; height: 160px; background: radial-gradient(circle, #a78bfa, #38e8c6); top: 50%; left: 20%; animation: orbDrift 7s ease-in-out infinite 1s; }
+@keyframes orbDrift { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.05); } }
+
+.chat-bubbles { position: absolute; bottom: 10%; left: 6%; }
+.bubble { border-radius: 18px 18px 18px 4px; padding: 11px 16px; font-size: 13px; font-weight: 600; max-width: 220px; margin-bottom: 10px; animation: fadeInUp 0.7s ease both; }
+.bubble.user { background: linear-gradient(135deg, #4f8dff, #6366f1); color: #fff; }
+.bubble.bot { background: rgba(12,22,60,0.9); border: 1px solid rgba(79,141,255,0.3); color: var(--text); margin-left: 28px; backdrop-filter: blur(10px); }
+.bot-name { color: #a78bfa; font-weight: 800; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.bubble:nth-child(1) { animation-delay: 1.0s; opacity: 0; }
+.bubble:nth-child(2) { animation-delay: 1.7s; opacity: 0; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.robot-scene { position: relative; width: 280px; height: 340px; display: flex; align-items: flex-end; justify-content: center; animation: floatScene 3.5s ease-in-out infinite; }
+@keyframes floatScene { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+.robot-shadow { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 120px; height: 18px; background: radial-gradient(ellipse, rgba(79,141,255,0.25) 0%, transparent 70%); border-radius: 50%; animation: shadowP 3.5s ease-in-out infinite; }
+@keyframes shadowP { 0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.5; } 50% { transform: translateX(-50%) scaleX(0.7); opacity: 0.25; } }
+#robot-svg { width: 200px; height: 300px; overflow: visible; }
+#robot-head-g { transition: transform 0.12s cubic-bezier(0.25,0.46,0.45,0.94); }
+#robot-visor-eyes { transition: transform 0.1s ease; }
+#arm-left  { transform-origin: 78px 148px; animation: swingL 3s ease-in-out infinite; }
+#arm-right { transform-origin: 122px 148px; animation: swingR 3s ease-in-out infinite 0.4s; }
+@keyframes swingL { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(-22deg); } }
+@keyframes swingR { 0%,100% { transform: rotate(8deg); } 50% { transform: rotate(22deg); } }
+
+/* Particles */
+.particle { position: absolute; border-radius: 50%; animation: particleFly var(--dur,4s) var(--delay,0s) infinite ease-in-out; opacity: 0; }
+@keyframes particleFly { 0%,100%{opacity:0;transform:translateY(0) scale(0.8)} 20%{opacity:0.6} 80%{opacity:0.3} 50%{transform:translateY(-40px) scale(1.2)} }
+
+.right { width: 450px; display: flex; align-items: center; justify-content: center; padding: 24px 20px; }
+.card {
+  width: 100%; max-width: 400px;
+  background: var(--card); backdrop-filter: blur(24px);
+  border: 1px solid var(--border); border-radius: 28px;
+  padding: 36px 34px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: cardIn 0.9s cubic-bezier(0.34,1.4,0.64,1) both;
+  position: relative; overflow: hidden;
+}
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #4f8dff, #a78bfa, #38e8c6); border-radius: 28px 28px 0 0; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(28px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.card::after { content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%); pointer-events: none; }
+
+.logo-area { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+.logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #4f8dff, #a78bfa); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 10px; }
+.card-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; text-align: center; color: var(--white); letter-spacing: -0.3px; }
+.card-title span { background: linear-gradient(90deg, #4f8dff, #a78bfa, #38e8c6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+.tabs { display: flex; background: rgba(8,14,40,0.7); border-radius: 12px; padding: 4px; margin-bottom: 20px; border: 1px solid var(--border); }
+.tab { flex: 1; padding: 9px; text-align: center; font-size: 13px; font-weight: 700; border-radius: 9px; cursor: pointer; color: var(--muted); transition: all 0.3s ease; font-family: 'Syne', sans-serif; }
+.tab.active { background: linear-gradient(135deg, #3060cc, #4f8dff); color: #fff; }
+
+.form { display: none; }
+.form.active { display: block; animation: formFadeIn 0.35s ease; }
+@keyframes formFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.input-group { position: relative; margin-bottom: 12px; }
+.input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+input[type="text"], input[type="email"], input[type="password"] {
+  width: 100%; background: var(--input); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px 12px 40px; font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: var(--text); outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+input::placeholder { color: var(--muted); }
+input:focus { border-color: rgba(79,141,255,0.6); box-shadow: 0 0 0 3px rgba(79,141,255,0.12); }
+.eye-toggle { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 0; transition: color 0.2s; }
+.eye-toggle:hover { color: var(--accent); }
+
+.checkbox-row { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-size: 12.5px; color: var(--muted); }
+.checkbox-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+.checkbox-row a { color: #a78bfa; text-decoration: none; font-weight: 600; }
+.checkbox-row a:hover { text-decoration: underline; }
+
+.btn-primary {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, #2a52cc 0%, #4f8dff 60%, #7c6fff 100%);
+  border: none; border-radius: 12px; color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.5px;
+  position: relative; overflow: hidden;
+}
+.btn-primary::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent); opacity: 0; transition: opacity 0.2s; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(79,141,255,0.4); }
+.btn-primary:hover::after { opacity: 1; }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary span { position: relative; z-index: 1; }
+
+.error-msg { color: #ff6b6b; font-size: 12px; margin-bottom: 10px; padding: 8px 12px; background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.2); border-radius: 8px; display: none; }
+.error-msg.show { display: block; }
+
+.switch-text { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 12px; }
+.switch-text a { color: #a78bfa; font-weight: 700; text-decoration: none; cursor: pointer; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: var(--muted); font-size: 11.5px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+.social-btns { display: flex; gap: 10px; }
+.btn-social { flex: 1; padding: 10px; background: rgba(8,14,40,0.7); border: 1px solid var(--border); border-radius: 11px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.25s ease; }
+.btn-social:hover { border-color: rgba(79,141,255,0.5); background: rgba(20,35,80,0.7); transform: translateY(-1px); }
+.g-dot { width: 16px; height: 16px; background: conic-gradient(#ea4335 0 25%, #fbbc05 25% 50%, #34a853 50% 75%, #4285f4 75%); border-radius: 50%; flex-shrink: 0; }
+.f-dot { width: 16px; height: 16px; background: #1877f2; border-radius: 50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800; flex-shrink: 0; }
+.footer-links { display: flex; justify-content: center; gap: 18px; margin-top: 14px; font-size: 10.5px; color: var(--muted); }
+.footer-links a { color: var(--muted); text-decoration: none; }
+.footer-links a:hover { color: var(--accent); }
+
+/* ═══════════════════════════════════════
+   MAIN PAGE STYLES
+═══════════════════════════════════════ */
+#main-page {
+  background: radial-gradient(circle at top, #0b1a33, #020817 70%);
+  color: white;
+  display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: rgba(10, 20, 40, 0.85);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(25px);
+  flex-shrink: 0;
+}
+.logo-box { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
+.logo-box .logo-emoji { width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #4f8dff, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+
+.search-box { background: rgba(255,255,255,0.07); padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.search-box input { background: transparent; border: none; outline: none; color: white; width: 100%; font-size: 13px; font-family: 'DM Sans', sans-serif; }
+.search-box input::placeholder { color: rgba(255,255,255,0.35); }
+
+.clear-chats { padding: 12px; background: rgba(255,255,255,0.07); border-radius: 10px; text-align: center; cursor: pointer; color: #bbb; margin-bottom: 20px; font-size: 13px; transition: background 0.2s; }
+.clear-chats:hover { background: rgba(255,255,255,0.12); }
+
+.modes-title { font-size: 11px; opacity: 0.5; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
+
+.menu-item { margin-top: 4px; display: flex; align-items: center; gap: 10px; cursor: pointer; color: #e2e8f0; font-size: 13.5px; padding: 10px 12px; border-radius: 10px; transition: all 0.2s; }
+.menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.1); color: white; }
+.menu-item.active { background: rgba(79,141,255,0.15); border-left: 3px solid #4f8dff; }
+
+/* User profile at bottom of sidebar */
+.sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #4f8dff, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.user-info .user-name { font-size: 13px; font-weight: 600; color: white; }
+.user-info .user-role { font-size: 11px; color: var(--muted); }
+.logout-btn { margin-left: auto; font-size: 16px; opacity: 0.5; transition: opacity 0.2s; }
+.sidebar-footer:hover .logout-btn { opacity: 1; color: #ff6b6b; }
+
+/* MAIN AREA */
+.main-content {
+  flex: 1;
+  padding: 40px;
+  position: relative;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top bar */
+.topbar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 20px; }
+.topbar-badge { padding: 6px 14px; background: rgba(79,141,255,0.12); border: 1px solid rgba(79,141,255,0.25); border-radius: 20px; font-size: 12px; color: #a78bfa; }
+
+/* Hero */
+.hero-section { text-align: center; margin-top: 6%; flex: 0 0 auto; }
+.hero-greeting { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #4f8dff; margin-bottom: 12px; opacity: 0.8; }
+.hero-section h1 { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #fff 30%, #a78bfa 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.2; }
+.hero-section h2 { font-size: 18px; opacity: 0.5; margin-top: 10px; font-weight: 400; }
+
+/* ASK BOX */
+.ask-box {
+  width: 540px; margin: 32px auto 0;
+  background: rgba(8,16,44,0.7);
+  border: 1px solid rgba(79,141,255,0.2);
+  border-radius: 18px; padding: 18px 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.ask-box:focus-within { border-color: rgba(79,141,255,0.5); box-shadow: 0 8px 40px rgba(79,141,255,0.12); }
+.ask-box input {
+  background: transparent; border: none; outline: none;
+  color: white; font-size: 15px; width: 100%;
+  font-family: 'DM Sans', sans-serif;
+}
+.ask-box input::placeholder { color: rgba(255,255,255,0.3); }
+.search-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+.tag {
+  background: rgba(79,141,255,0.15); padding: 7px 16px; border-radius: 10px;
+  color: #a0c4ff; border: 1px solid rgba(79,141,255,0.25); cursor: pointer;
+  font-size: 13px; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+}
+.tag:hover { background: rgba(79,141,255,0.3); color: white; transform: translateY(-1px); }
+.ask-icons { margin-left: auto; display: flex; gap: 14px; font-size: 18px; opacity: 0.4; }
+.ask-icons span { cursor: pointer; transition: opacity 0.2s; }
+.ask-icons span:hover { opacity: 1; }
+
+/* QUICK TOPICS */
+.quick-topics { display: flex; gap: 12px; margin: 28px auto 0; width: 540px; flex-wrap: wrap; justify-content: center; }
+.topic-chip { padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; font-size: 12.5px; color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s; }
+.topic-chip:hover { background: rgba(79,141,255,0.15); border-color: rgba(79,141,255,0.4); color: white; }
+
+/* BOTTOM INPUT */
+.bottom-input-wrap { margin-top: auto; padding-top: 20px; }
+.bottom-input {
+  display: flex; background: rgba(8,16,44,0.7);
+  border: 1px solid rgba(79,141,255,0.2);
+  padding: 14px 20px; border-radius: 14px;
+  align-items: center; gap: 12px;
+  backdrop-filter: blur(20px);
+  transition: border-color 0.3s;
+}
+.bottom-input:focus-within { border-color: rgba(79,141,255,0.5); }
+.bottom-input input {
+  flex: 1; background: transparent; border: none;
+  color: white; outline: none; font-family: 'DM Sans', sans-serif; font-size: 14px;
+}
+.bottom-input input::placeholder { color: rgba(255,255,255,0.25); }
+.send-btn { font-size: 20px; cursor: pointer; opacity: 0.5; transition: opacity 0.2s, transform 0.2s; background: none; border: none; color: #4f8dff; }
+.send-btn:hover { opacity: 1; transform: translateX(2px); }
+
+/* Help button */
+.help-btn {
+  position: fixed; right: 30px; bottom: 30px;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: linear-gradient(135deg, #2a52cc, #4f8dff);
+  display: flex; justify-content: center; align-items: center;
+  font-size: 18px; cursor: pointer; font-weight: 800; color: white;
+  box-shadow: 0 4px 20px rgba(79,141,255,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: 'Syne', sans-serif;
+}
+.help-btn:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(79,141,255,0.6); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN PAGE ══════════════ -->
+<div id="login-page">
+  <div id="particles" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;"></div>
+  <div class="login-wrapper">
+    <!-- LEFT: Robot -->
+    <div class="left">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+
+      <div class="robot-scene" id="robotScene">
+        <div class="robot-shadow"></div>
+        <svg id="robot-svg" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bodyG" x1="60" y1="130" x2="140" y2="250" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1a3a7c"/>
+              <stop offset="100%" stop-color="#0d1f50"/>
+            </linearGradient>
+            <linearGradient id="headG" x1="60" y1="55" x2="140" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1e4a9c"/>
+              <stop offset="100%" stop-color="#112060"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Legs -->
+          <rect x="74" y="230" width="20" height="50" rx="8" fill="#0d1a48"/>
+          <rect x="106" y="230" width="20" height="50" rx="8" fill="#0d1a48"/>
+          <rect x="68" y="272" width="30" height="16" rx="6" fill="#162050"/>
+          <rect x="100" y="272" width="30" height="16" rx="6" fill="#162050"/>
+
+          <!-- Body -->
+          <rect x="60" y="135" width="80" height="100" rx="18" fill="url(#bodyG)"/>
+          <rect x="60" y="135" width="80" height="4" rx="2" fill="rgba(79,141,255,0.5)"/>
+          <rect x="72" y="150" width="56" height="34" rx="10" fill="rgba(8,14,44,0.7)" stroke="rgba(79,141,255,0.3)" stroke-width="1"/>
+          <rect x="78" y="157" width="16" height="8" rx="3" fill="#38e8c6" opacity="0.7"/>
+          <rect x="100" y="157" width="10" height="8" rx="3" fill="#4f8dff" opacity="0.6"/>
+          <rect x="78" y="169" width="32" height="4" rx="2" fill="rgba(79,141,255,0.25)"/>
+          <circle cx="108" cy="195" r="6" fill="rgba(167,139,250,0.2)" stroke="rgba(167,139,250,0.5)" stroke-width="1"/>
+          <circle cx="108" cy="195" r="3" fill="#a78bfa" opacity="0.8"/>
+          <rect x="72" y="215" width="56" height="3" rx="1.5" fill="rgba(79,141,255,0.15)"/>
+
+          <!-- Arms -->
+          <g id="arm-left">
+            <rect x="38" y="140" width="22" height="54" rx="10" fill="#0d1a48"/>
+            <rect x="34" y="186" width="28" height="16" rx="7" fill="#162050"/>
+            <circle cx="48" cy="148" r="4" fill="rgba(79,141,255,0.4)"/>
+          </g>
+          <g id="arm-right">
+            <rect x="140" y="140" width="22" height="54" rx="10" fill="#0d1a48"/>
+            <rect x="138" y="186" width="28" height="16" rx="7" fill="#162050"/>
+            <circle cx="152" cy="148" r="4" fill="rgba(79,141,255,0.4)"/>
+          </g>
+
+          <!-- Neck -->
+          <rect x="88" y="122" width="24" height="18" rx="6" fill="#0d1a48"/>
+          <rect x="92" y="124" width="16" height="3" rx="1.5" fill="rgba(79,141,255,0.3)"/>
+
+          <!-- Head -->
+          <g id="robot-head-g">
+            <rect x="54" y="55" width="92" height="72" rx="20" fill="url(#headG)"/>
+            <rect x="54" y="55" width="92" height="3" rx="1.5" fill="rgba(79,141,255,0.6)"/>
+            <rect x="54" y="124" width="92" height="3" rx="1.5" fill="rgba(79,141,255,0.3)"/>
+            <rect x="46" y="70" width="10" height="22" rx="5" fill="#0d1a48"/>
+            <rect x="144" y="70" width="10" height="22" rx="5" fill="#0d1a48"/>
+            <circle cx="50" cy="76" r="3" fill="rgba(79,141,255,0.5)"/>
+            <circle cx="150" cy="76" r="3" fill="rgba(79,141,255,0.5)"/>
+
+            <!-- Visor -->
+            <rect x="64" y="68" width="72" height="38" rx="12" fill="rgba(4,10,30,0.9)" stroke="rgba(79,141,255,0.4)" stroke-width="1.5"/>
+            <rect x="64" y="68" width="72" height="38" rx="12" fill="url(#visorShine)" opacity="0.1"/>
+
+            <!-- Eyes -->
+            <g id="robot-visor-eyes" filter="url(#glow)">
+              <ellipse cx="84" cy="82" rx="11" ry="9" fill="#4f8dff" opacity="0.9"/>
+              <ellipse cx="84" cy="82" rx="7" ry="5.5" fill="#1a60cc"/>
+              <ellipse cx="84" cy="82" rx="3.5" ry="3" fill="#38e8c6"/>
+              <circle cx="82" cy="80" r="1.2" fill="white" opacity="0.8"/>
+              <ellipse cx="116" cy="82" rx="11" ry="9" fill="#4f8dff" opacity="0.9"/>
+              <ellipse cx="116" cy="82" rx="7" ry="5.5" fill="#1a60cc"/>
+              <ellipse cx="116" cy="82" rx="3.5" ry="3" fill="#38e8c6"/>
+              <circle cx="114" cy="80" r="1.2" fill="white" opacity="0.8"/>
+            </g>
+
+            <path d="M84 100 Q100 110 116 100" stroke="rgba(79,141,255,0.5)" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <rect x="68" y="90" width="12" height="4" rx="2" fill="rgba(167,139,250,0.45)"/>
+            <rect x="120" y="90" width="12" height="4" rx="2" fill="rgba(167,139,250,0.45)"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="chat-bubbles">
+        <div class="bubble user">Hello, Can you help me?</div>
+        <div class="bubble bot">
+          <div class="bot-name">✦ Buddy <span style="margin-left:auto;color:var(--muted);font-size:11px;">● ↺</span></div>
+          Sure! Prep Journey is ready to help you ace it.
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Form -->
+    <div class="right">
+      <div class="card">
+        <div class="logo-area">
+          <div class="logo-icon">🚀</div>
+          <div class="card-title">Welcome to <span>Prep Journey!</span></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" id="tab-signup" onclick="switchTab('signup')">Sign Up</div>
+          <div class="tab" id="tab-login" onclick="switchTab('login')">Sign In</div>
+        </div>
+
+        <!-- Sign Up Form -->
+        <div class="form active" id="form-signup">
+          <div class="error-msg" id="err-signup"></div>
+          <div class="input-group">
+            <span class="input-icon">👤</span>
+            <input type="text" id="signup-name" placeholder="Enter your name">
+          </div>
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="signup-email" placeholder="Enter your email">
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="pw-signup" placeholder="Enter your password">
+            <button class="eye-toggle" onclick="togglePw('pw-signup',this)">👁</button>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="agree">
+            <label for="agree">I agree to <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+          </div>
+          <button class="btn-primary" onclick="handleSignup(this)"><span>Sign Up</span></button>
+          <div class="switch-text">Already have an account? <a onclick="switchTab('login')">Sign In</a></div>
+        </div>
+
+        <!-- Sign In Form -->
+        <div class="form" id="form-login">
+          <div class="error-msg" id="err-login"></div>
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="login-email" placeholder="Enter your email">
+          </div>
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="pw-login" placeholder="Enter your password">
+            <button class="eye-toggle" onclick="togglePw('pw-login',this)">👁</button>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="remember">
+            <label for="remember">Remember me</label>
+            <a href="#" style="margin-left:auto;color:#a78bfa;font-size:12px;font-weight:600;">Forgot password?</a>
+          </div>
+          <button class="btn-primary" onclick="handleLogin(this)"><span>Sign In</span></button>
+          <div class="switch-text">Don't have an account? <a onclick="switchTab('signup')">Sign Up</a></div>
+        </div>
+
+        <div class="divider">Or continue with</div>
+        <div class="social-btns">
+          <button class="btn-social" onclick="socialLogin('Google')"><div class="g-dot"></div> Google</button>
+          <button class="btn-social" onclick="socialLogin('Facebook')"><div class="f-dot">f</div> Facebook</button>
+        </div>
+        <div class="footer-links">
+          <a href="#">Terms of Service</a>
+          <a href="#">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN PAGE ══════════════ -->
+<div id="main-page">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo-box">
+      <div class="logo-emoji">🚀</div>
+      <div class="logo-text">Prep Journey</div>
+    </div>
+
+    <div class="search-box">
+      🔍 <input type="text" placeholder="Search chats…" />
+    </div>
+
+    <div class="clear-chats" onclick="clearChats()">⟳ Clear all chats</div>
+
+    <div class="modes-title">Modes</div>
+    <div class="menu-item active" onclick="setMode(this)">📘 Learning</div>
+    <div class="menu-item" onclick="setMode(this)">❓ Doubt Solving</div>
+    <div class="menu-item" onclick="setMode(this)">📚 Exam Guidance</div>
+    <div class="menu-item" onclick="setMode(this)">📝 Mock Test</div>
+    <div class="menu-item" onclick="setMode(this)">🔁 Revision Boost</div>
+    <div class="menu-item" onclick="setMode(this)">🧭 Career Guidance</div>
+
+    <div class="sidebar-footer" onclick="logout()">
+      <div class="user-avatar" id="sidebar-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">Learner</div>
+        <div class="user-role">Student</div>
+      </div>
+      <div class="logout-btn" title="Logout">⏏</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-badge">✨ AI-Powered Learning</div>
+      <div class="topbar-badge" id="mode-badge">📘 Learning Mode</div>
+    </div>
+
+    <div class="hero-section">
+      <div class="hero-greeting" id="greeting-text">Good day, Learner</div>
+      <h1 id="hero-title">Hey, I'm here to guide you</h1>
+      <h2>What would you like to learn today?</h2>
+
+      <div class="ask-box">
+        <input type="text" id="main-input" placeholder="Ask anything… chemistry, maths, history, career…" onkeydown="handleAskKey(event)" />
+        <div class="search-actions">
+          <button class="tag" onclick="askQuestion('search')">🔎 Search</button>
+          <button class="tag" onclick="askQuestion('research')">📘 Deep Research</button>
+          <button class="tag" onclick="askQuestion('quiz')">🎯 Quick Quiz</button>
+          <div class="ask-icons">
+            <span title="Web search">🌐</span>
+            <span title="Image">🖼️</span>
+            <span title="Attach file">📎</span>
+            <span title="Voice input">🎤</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-topics">
+        <div class="topic-chip" onclick="fillAsk('Explain Newton\'s Laws')">⚡ Physics</div>
+        <div class="topic-chip" onclick="fillAsk('Solve quadratic equations')">∑ Maths</div>
+        <div class="topic-chip" onclick="fillAsk('UPSC preparation strategy')">📋 UPSC</div>
+        <div class="topic-chip" onclick="fillAsk('JEE Advanced tips')">🔬 JEE</div>
+        <div class="topic-chip" onclick="fillAsk('English grammar basics')">📖 English</div>
+        <div class="topic-chip" onclick="fillAsk('Career in Computer Science')">💻 Career</div>
+      </div>
+    </div>
+
+    <div class="bottom-input-wrap">
+      <div class="bottom-input">
+        <input type="text" id="bottom-input" placeholder="Let the magic begin, ask a question…" onkeydown="handleAskKey(event)" />
+        <button class="send-btn" onclick="askQuestion('send')">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="help-btn" title="Help">?</div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   SIMPLE IN-MEMORY USER STORE
+══════════════════════════════════ */
+const users = {}; // { email: { name, password } }
+let currentUser = null;
+
+/* ══════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════ */
+function switchTab(t) {
+  ['signup','login'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+    document.getElementById('form-'+id).classList.toggle('active', id===t);
+  });
+  document.getElementById('err-signup').classList.remove('show');
+  document.getElementById('err-login').classList.remove('show');
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+/* ══════════════════════════════════
+   AUTH HANDLERS
+══════════════════════════════════ */
+function handleSignup(btn) {
+  const name  = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pw    = document.getElementById('pw-signup').value;
+  const agree = document.getElementById('agree').checked;
+
+  if (!name)  return showError('err-signup', '⚠️ Please enter your name.');
+  if (!email || !email.includes('@')) return showError('err-signup', '⚠️ Enter a valid email address.');
+  if (pw.length < 6) return showError('err-signup', '⚠️ Password must be at least 6 characters.');
+  if (!agree) return showError('err-signup', '⚠️ You must agree to the Terms & Privacy Policy.');
+  if (users[email]) return showError('err-signup', '⚠️ An account with this email already exists. Sign In instead.');
+
+  users[email] = { name, password: pw };
+  currentUser = { name, email };
+
+  const s = btn.querySelector('span');
+  s.textContent = '✓ Account Created!';
+  btn.style.background = 'linear-gradient(135deg, #1a7f4a, #2ecc71)';
+  setTimeout(() => goToMain(), 900);
+}
+
+function handleLogin(btn) {
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('pw-login').value;
+
+  if (!email) return showError('err-login', '⚠️ Please enter your email.');
+  if (!pw)    return showError('err-login', '⚠️ Please enter your password.');
+
+  // Demo bypass: any email+pass works if not registered, or matches if registered
+  if (users[email] && users[email].password !== pw) {
+    return showError('err-login', '⚠️ Incorrect password. Please try again.');
+  }
+
+  const name = users[email] ? users[email].name : email.split('@')[0];
+  currentUser = { name, email };
+
+  const s = btn.querySelector('span');
+  s.textContent = '✓ Welcome Back!';
+  btn.style.background = 'linear-gradient(135deg, #1a7f4a, #2ecc71)';
+  setTimeout(() => goToMain(), 900);
+}
+
+function socialLogin(provider) {
+  currentUser = { name: provider + ' User', email: provider.toLowerCase() + '@demo.com' };
+  goToMain();
+}
+
+/* ══════════════════════════════════
+   PAGE TRANSITION
+══════════════════════════════════ */
+function goToMain() {
+  // Update sidebar user info
+  document.getElementById('sidebar-name').textContent = currentUser.name;
+  document.getElementById('sidebar-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+  // Greeting
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting-text').textContent = greet + ', ' + currentUser.name.split(' ')[0] + ' 👋';
+  document.getElementById('hero-title').textContent = "Hey " + currentUser.name.split(' ')[0] + ", I'm here to guide you";
+
+  document.body.classList.add('show-main');
+}
+
+function logout() {
+  if (!confirm('Are you sure you want to log out?')) return;
+  currentUser = null;
+  document.body.classList.remove('show-main');
+  // Reset button states
+  ['pw-signup','pw-login'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('signup-name').value = '';
+  document.getElementById('signup-email').value = '';
+  document.getElementById('login-email').value = '';
+}
+
+/* ══════════════════════════════════
+   MAIN PAGE INTERACTIONS
+══════════════════════════════════ */
+function setMode(el) {
+  document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mode-badge').textContent = el.textContent.trim().split(' ').slice(0,2).join(' ') + ' Mode';
+}
+
+function fillAsk(text) {
+  document.getElementById('main-input').value = text;
+  document.getElementById('main-input').focus();
+}
+
+function askQuestion(type) {
+  const val = document.getElementById('main-input').value || document.getElementById('bottom-input').value;
+  if (!val.trim()) {
+    document.getElementById('main-input').focus();
+    document.getElementById('main-input').style.borderBottom = '2px solid #4f8dff';
+    return;
+  }
+  // In a real app, this would call an AI API.
+  alert('🚀 Your question has been sent!\n\n"' + val + '"\n\n(Connect to your AI backend to process this.)');
+}
+
+function handleAskKey(e) {
+  if (e.key === 'Enter') askQuestion('send');
+}
+
+function clearChats() {
+  if (confirm('Clear all chat history?')) {
+    document.getElementById('main-input').value = '';
+    document.getElementById('bottom-input').value = '';
+  }
+}
+
+/* ══════════════════════════════════
+   PASSWORD TOGGLE
+══════════════════════════════════ */
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? '👁' : '🙈';
+}
+
+/* ══════════════════════════════════
+   ROBOT CURSOR TRACKING
+══════════════════════════════════ */
+const scene  = document.getElementById('robotScene');
+const headG  = document.getElementById('robot-head-g');
+const eyesG  = document.getElementById('robot-visor-eyes');
+document.addEventListener('mousemove', e => {
+  const r = scene.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const dx = e.clientX - cx;
+  const dy = e.clientY - cy;
+  const dist = Math.min(Math.hypot(dx, dy), 500);
+  const n = dist / 500;
+  const ang = Math.atan2(dy, dx);
+  headG.style.transform = `translate(${Math.cos(ang)*n*10}px, ${Math.sin(ang)*n*7}px)`;
+  eyesG.style.transform  = `translate(${Math.cos(ang)*n*4}px,  ${Math.sin(ang)*n*3}px)`;
+});
+
+/* ══════════════════════════════════
+   PARTICLES
+══════════════════════════════════ */
+const pc = document.getElementById('particles');
+const pcColors = ['#4f8dff','#a78bfa','#38e8c6','#7c6fff','#60afff'];
+for (let i = 0; i < 35; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const s = 1.5 + Math.random() * 3;
+  p.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${s}px;height:${s}px;background:${pcColors[Math.floor(Math.random()*pcColors.length)]};--dur:${3+Math.random()*5}s;--delay:-${Math.random()*7}s;`;
+  pc.appendChild(p);
+}
+</script>
+</body>
+</html>
