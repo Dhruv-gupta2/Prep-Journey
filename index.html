@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Study Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ['Instrument Serif', 'serif'],
+            body: ['DM Sans', 'sans-serif']
+          },
+          borderRadius: {
+            DEFAULT: '9999px'
+          },
+          keyframes: {
+            mesh: {
+              '0%,100%': { backgroundPosition: '0% 50%, 100% 50%' },
+              '50%': { backgroundPosition: '100% 50%, 0% 50%' }
+            },
+            pulseDots: {
+              '0%,80%,100%': { opacity: .25, transform: 'translateY(0)' },
+              '40%': { opacity: 1, transform: 'translateY(-4px)' }
+            }
+          },
+          animation: {
+            mesh: 'mesh 20s ease-in-out infinite',
+            dots: 'pulseDots 1.2s ease-in-out infinite'
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+  <script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+  <script>window.Motion = window.FramerMotion || window.Motion;</script>
+  <style>
+    html { scroll-behavior: smooth; background: #000; }
+    body { margin: 0; background: #000; color: #fff; font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+    * { box-sizing: border-box; }
+    .liquid-glass {
+      background: rgba(255,255,255,0.01);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: none;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-glass::before {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.45) 0%,
+        rgba(255,255,255,0.15) 20%,
+        rgba(255,255,255,0) 40%,
+        rgba(255,255,255,0) 60%,
+        rgba(255,255,255,0.15) 80%,
+        rgba(255,255,255,0.45) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .liquid-glass-strong {
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(50px);
+      -webkit-backdrop-filter: blur(50px);
+      box-shadow: 4px 4px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-glass-strong::before {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.5) 0%,
+        rgba(255,255,255,0.2) 20%,
+        rgba(255,255,255,0) 40%,
+        rgba(255,255,255,0) 60%,
+        rgba(255,255,255,0.2) 80%,
+        rgba(255,255,255,0.5) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* Glow accent for active elements */
+    .glow-accent {
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Scrollbar hide */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .glass-hover { transition: transform 200ms ease-out, background 200ms ease-out, box-shadow 200ms ease-out; }
+    .glass-hover:hover { transform: scale(1.02); background: rgba(255,255,255,0.045); }
+    .section-shell { opacity: 0; transform: translateY(28px); filter: blur(10px); transition: opacity 700ms ease, transform 700ms ease, filter 700ms ease; }
+    .section-shell.in-view { opacity: 1; transform: translateY(0); filter: blur(0); }
+    .hero-fallback {
+      background: radial-gradient(ellipse at 20% 50%, #1a0533 0%, #000 60%),
+                  radial-gradient(ellipse at 80% 20%, #0a1628 0%, transparent 60%);
+      background-size: 140% 140%, 120% 120%;
+    }
+    .study-fallback {
+      background: radial-gradient(ellipse at 10% 30%, #1c1235 0%, transparent 55%),
+                  radial-gradient(ellipse at 80% 70%, #062033 0%, #000 65%);
+      background-size: 130% 130%, 120% 120%;
+    }
+    .quiz-bg {
+      background: radial-gradient(ellipse at top left, #1a0040 0%, #000 50%),
+                  radial-gradient(ellipse at bottom right, #001a3a 0%, transparent 60%);
+    }
+    .plan-bg {
+      background: radial-gradient(ellipse at 15% 10%, #24123c 0%, transparent 55%),
+                  radial-gradient(ellipse at 90% 80%, #022033 0%, #000 66%);
+      background-size: 130% 130%, 120% 120%;
+    }
+    .career-fallback {
+      background: radial-gradient(ellipse at 30% 20%, #051932 0%, transparent 55%),
+                  radial-gradient(ellipse at 80% 80%, #120328 0%, #000 70%);
+    }
+    .capabilities-fallback {
+      background: radial-gradient(ellipse at 20% 20%, #17171f 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, #06172a 0%, #000 65%);
+    }
+    input, textarea, button { font-family: 'DM Sans', sans-serif; outline: none; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .7; }
+    input[type="range"] { accent-color: white; }
+    .answer-correct { box-shadow: 0 0 20px rgba(34,197,94,0.4), inset 0 0 0 1px rgba(34,197,94,0.45); }
+    .answer-wrong { box-shadow: 0 0 20px rgba(239,68,68,0.4), inset 0 0 0 1px rgba(239,68,68,0.45); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      if (String(args[0] || '').includes('Each child in a list should have a unique "key"')) return;
+      originalConsoleError(...args);
+    };
+
+    const { useState, useEffect, useRef, createContext, useContext, useMemo } = React;
+    const MotionLib = window.Motion || {};
+    const motion = MotionLib.motion || new Proxy({}, {
+      get: (_, tag) => React.forwardRef(({ children, initial, animate, exit, transition, variants, whileInView, viewport, ...props }, ref) =>
+        React.createElement(tag, { ...props, ref }, children)
+      )
+    });
+    const AnimatePresence = MotionLib.AnimatePresence || (({ children }) => <>{children}</>);
+
+    const AppContext = createContext(null);
+    const MODES = {
+      study: "You are an expert study tutor. Give clear, concise explanations, examples, and memory tips. Format with short paragraphs. Always offer a follow-up quiz question at the end.",
+      career: "You are a career counsellor for students. Analyze skills and interests shared, then recommend 3 specific career paths with roadmap steps, required skills, and realistic timelines.",
+      quiz: "Generate a 5-question multiple choice quiz on the given topic. Return JSON only: [{question, options:[A,B,C,D], answer, explanation}]. No markdown fences.",
+      plan: "Create a structured weekly study schedule as JSON: [{day, subject, duration, tasks:[]}]. Return JSON only."
+    };
+    const API_ENDPOINT = "/api/messages";
+
+    const stripFences = (text) => String(text || '').replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+    const parseJSONLoose = (text) => {
+      const cleaned = stripFences(text);
+      try { return JSON.parse(cleaned); } catch (e) {
+        const start = cleaned.indexOf('[');
+        const end = cleaned.lastIndexOf(']');
+        if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
+        throw e;
+      }
+    };
+
+    function Icon({ name, className = "w-5 h-5", filled = false }) {
+      const common = { width: 24, height: 24, viewBox: "0 0 24 24", className, fill: filled ? "currentColor" : "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+      const paths = {
+        arrow: <><path d="M7 17L17 7"/><path d="M7 7h10v10"/></>,
+        play: <polygon points="6 4 20 12 6 20" fill="currentColor" stroke="none"/>,
+        brain: <path d="M8.5 19.5c-2.7-.7-4.5-2.8-4.5-5.3 0-1.6.8-3.1 2.1-4-.1-2.7 1.9-4.8 4.3-4.2.8-1.4 2.5-2 4.1-1.4 1.4.5 2.2 1.7 2.4 3.1 2 .4 3.6 2.1 3.6 4.2 0 1.7-1 3.2-2.4 3.9.1 2.8-2.8 4.9-5.4 3.5-1.1 1-2.8 1.1-4.2.2Z"/>,
+        sparkle: <path d="M12 2 L14 8 L20 10 L14 12 L12 18 L10 12 L4 10 L10 8 Z" fill="white" strokeWidth="1.5"/>,
+        clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></>,
+        route: <><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19c5 0 8-3 8-8V7"/></>,
+        star: <path d="m12 2 3.1 6.4 7 .9-5.1 5 1.3 7-6.3-3.4-6.3 3.4 1.3-7-5.1-5 7-.9L12 2Z"/>,
+        light: <><path d="M9 18h6"/><path d="M10 22h4"/><path d="M8 14c-1.2-1.1-2-2.6-2-4.4A6 6 0 0 1 18 9.6c0 1.8-.8 3.3-2 4.4-.8.7-1 1.2-1 2H9c0-.8-.2-1.3-1-2Z"/></>,
+        quiz: <><path d="M9 9h6"/><path d="M9 13h4"/><path d="M8 3h8l3 3v15H5V3h3Z"/></>,
+        map: <><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></>,
+        mic: <><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></>,
+        send: <><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></>,
+        close: <><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>
+      };
+      return <svg {...common}>{paths[name]}</svg>;
+    }
+    window.Icon = Icon;
+
+    function FadingVideo({ src, className = "", style = {} }) {
+      const videoRef = useRef(null);
+      const rafRef = useRef(null);
+      const fadingOutRef = useRef(false);
+
+      const fadeTo = (target, duration) => {
+        const video = videoRef.current;
+        if (!video) return;
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        const start = performance.now();
+        const from = Number.parseFloat(video.style.opacity || "0");
+        const step = (now) => {
+          const progress = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          video.style.opacity = String(from + (target - from) * eased);
+          if (progress < 1) rafRef.current = requestAnimationFrame(step);
+        };
+        rafRef.current = requestAnimationFrame(step);
+      };
+
+      useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        const onLoaded = () => {
+          video.style.opacity = "0";
+          video.play().catch(() => {});
+          fadeTo(1, 500);
+        };
+        const onTime = () => {
+          if (!video.duration || fadingOutRef.current) return;
+          const remaining = video.duration - video.currentTime;
+          if (remaining <= 0.55 && remaining > 0) {
+            fadingOutRef.current = true;
+            fadeTo(0, 500);
+          }
+        };
+        const onEnded = () => {
+          video.style.opacity = "0";
+          setTimeout(() => {
+            if (!videoRef.current) return;
+            video.currentTime = 0;
+            video.play().catch(() => {});
+            fadingOutRef.current = false;
+            fadeTo(1, 500);
+          }, 100);
+        };
+        video.addEventListener("loadeddata", onLoaded);
+        video.addEventListener("timeupdate", onTime);
+        video.addEventListener("ended", onEnded);
+        return () => {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          video.removeEventListener("loadeddata", onLoaded);
+          video.removeEventListener("timeupdate", onTime);
+          video.removeEventListener("ended", onEnded);
+        };
+      }, [src]);
+
+      return <video ref={videoRef} src={src} autoPlay muted playsInline preload="auto" className={className} style={{ opacity: 0, ...style }} />;
+    }
+    window.FadingVideo = FadingVideo;
+
+    function BlurText({ text, className }) {
+      const ref = useRef(null);
+      const [visible, setVisible] = useState(false);
+      useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+          if (entry.isIntersecting) setVisible(true);
+        }, { threshold: 0.1 });
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+      }, []);
+      return (
+        <p ref={ref} className={className} style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", rowGap: "0.1em" }}>
+          {text.split(" ").map((word, i) => (
+            <motion.span
+              key={`${word}-${i}`}
+              initial={{ filter: "blur(10px)", opacity: 0, y: 50 }}
+              animate={visible ? { filter: ["blur(10px)", "blur(5px)", "blur(0px)"], opacity: [0, 0.5, 1], y: [50, -5, 0] } : {}}
+              transition={{ duration: 0.7, times: [0, 0.5, 1], ease: "easeOut", delay: (i * 100) / 1000 }}
+              style={{ display: "inline-block", marginRight: "0.28em" }}
+            >
+              {word}
+            </motion.span>
+          ))}
+        </p>
+      );
+    }
+    window.BlurText = BlurText;
+
+    function useSectionInView() {
+      useEffect(() => {
+        const nodes = document.querySelectorAll(".section-shell");
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) entry.target.classList.add("in-view");
+          });
+        }, { threshold: 0.12 });
+        nodes.forEach((node) => observer.observe(node));
+        return () => observer.disconnect();
+      }, []);
+    }
+
+    function AppProvider({ children }) {
+      const [activeSection, setActiveSection] = useState("hero");
+      const [copilotOpen, setCopilotOpen] = useState(false);
+      const [copilotMode, setCopilotMode] = useState("study");
+      const [messages, setMessages] = useState([]);
+      const [quizData, setQuizData] = useState(null);
+      const [quizScore, setQuizScore] = useState({ correct: 0, total: 0, current: 0 });
+      const [studyPlan, setStudyPlan] = useState(null);
+      const [isLoading, setIsLoading] = useState(false);
+      const [apiStatus, setApiStatus] = useState({ checked: false, online: false, configured: false });
+      const [userProfile, setUserProfile] = useState(() => {
+        try { return JSON.parse(localStorage.getItem("studyCopilotProfile")) || { name: "", subjects: [], interests: [], targetCareer: "" }; }
+        catch { return { name: "", subjects: [], interests: [], targetCareer: "" }; }
+      });
+
+      useEffect(() => {
+        localStorage.setItem("studyCopilotProfile", JSON.stringify(userProfile));
+      }, [userProfile]);
+
+      useEffect(() => {
+        fetch("/api/health")
+          .then(res => res.json())
+          .then(data => setApiStatus({ checked: true, online: Boolean(data.ok), configured: Boolean(data.anthropicConfigured) }))
+          .catch(() => setApiStatus({ checked: true, online: false, configured: false }));
+      }, []);
+
+      const callAnthropic = async ({ mode, prompt, history = messages, silent = false }) => {
+        if (!prompt.trim()) return "";
+        setIsLoading(true);
+        const userMsg = { role: "user", content: prompt, timestamp: new Date() };
+        if (!silent) setMessages(prev => [...prev, userMsg]);
+        try {
+          const payloadMessages = [...history, userMsg]
+            .filter(m => m.role === "user" || m.role === "assistant")
+            .map(m => ({ role: m.role, content: m.content }));
+          const res = await fetch(API_ENDPOINT, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1024,
+              system: MODES[mode],
+              messages: payloadMessages
+            })
+          });
+          if (!res.ok) throw new Error(`Anthropic request failed: ${res.status}`);
+          const data = await res.json();
+          const text = data.content.filter(b => b.type === "text").map(b => b.text).join("");
+          if (!silent) setMessages(prev => [...prev, { role: "assistant", content: text, timestamp: new Date() }]);
+          return text;
+        } catch (error) {
+          const fallback = mode === "quiz"
+            ? JSON.stringify(sampleQuiz(prompt))
+            : mode === "plan"
+              ? JSON.stringify(samplePlan(prompt))
+              : mode === "career"
+                ? JSON.stringify(sampleCareers(userProfile.interests))
+                : "I could not reach the live AI server yet. Set ANTHROPIC_API_KEY in .env, restart the local server, and this panel will use Claude for real responses.\n\nFor now, study this way: define the idea, work one example, write one memory cue, then answer one practice question.\n\nFollow-up quiz: What is the one concept in this topic that connects all the smaller facts?";
+          if (!silent && mode !== "quiz" && mode !== "plan") {
+            setMessages(prev => [...prev, { role: "assistant", content: fallback, timestamp: new Date() }]);
+          }
+          return fallback;
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      const value = {
+        activeSection, setActiveSection, copilotOpen, setCopilotOpen, copilotMode, setCopilotMode,
+        messages, setMessages, quizData, setQuizData, quizScore, setQuizScore, studyPlan, setStudyPlan,
+        userProfile, setUserProfile, isLoading, setIsLoading, apiStatus, callAnthropic
+      };
+      window.AppState = value;
+      return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+    }
+
+    const useApp = () => useContext(AppContext);
+
+    function sampleQuiz(topic) {
+      return Array.from({ length: 5 }, (_, i) => ({
+        question: `${topic || "This topic"}: sample question ${i + 1}?`,
+        options: ["Core definition", "Unrelated fact", "Common misconception", "Partial answer"],
+        answer: "Core definition",
+        explanation: "The core definition is the best answer because it directly matches the concept being tested."
+      }));
+    }
+
+    function samplePlan(goal) {
+      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      return days.map((day, i) => ({
+        day, subject: ["Maths", "Physics", "Chemistry", "English", "CS", "Biology", "Review"][i],
+        duration: i === 6 ? "1 hour" : "2 hours",
+        tasks: [`Focus block for ${goal || "your goal"}`, "Practice questions", "Summarize weak points"]
+      }));
+    }
+
+    function sampleCareers(interests = []) {
+      const technical = interests.includes("Technology") || interests.includes("Engineering") || interests.includes("Science");
+      const names = technical
+        ? ["AI Product Manager", "Learning Data Analyst", "UX Engineer"]
+        : ["Strategic Designer", "Education Consultant", "Sustainability Analyst"];
+      return names.map((name, i) => ({
+        name,
+        match: [94, 88, 83][i],
+        icon: ["✦", "◇", "◎"][i],
+        description: `${name} fits your interest pattern and current skill profile. It blends practical projects with a clear entry-level route.`,
+        steps: ["Build a focused foundation", "Complete two portfolio projects", "Find internship or mentor feedback", "Apply with case-study proof"],
+        skills: ["Research", "Communication", "Analytics", "Portfolio"],
+        years: i + 1
+      }));
+    }
+
+    function normalizeQuiz(data, topic) {
+      if (!Array.isArray(data)) throw new Error("Quiz must be an array");
+      const normalized = data.slice(0, 5).map((item, i) => {
+        const options = Array.isArray(item.options) ? item.options.map(String).slice(0, 4) : [];
+        if (!item.question || options.length !== 4) throw new Error(`Quiz question ${i + 1} is malformed`);
+        const answer = options.includes(item.answer) ? item.answer : options[0];
+        return {
+          question: String(item.question),
+          options,
+          answer,
+          explanation: String(item.explanation || "Review the concept and compare each option carefully.")
+        };
+      });
+      return normalized.length === 5 ? normalized : sampleQuiz(topic);
+    }
+
+    function normalizePlan(data, fallbackGoal) {
+      if (!Array.isArray(data)) throw new Error("Plan must be an array");
+      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      const normalized = days.map((day, i) => {
+        const item = data[i] || {};
+        const tasks = Array.isArray(item.tasks) ? item.tasks.map(String).filter(Boolean).slice(0, 4) : [];
+        return {
+          day: String(item.day || day),
+          subject: String(item.subject || "Review"),
+          duration: String(item.duration || "1 hour"),
+          tasks: tasks.length ? tasks : [`Focus block for ${fallbackGoal || "your goal"}`, "Practice questions"]
+        };
+      });
+      return normalized;
+    }
+
+    function normalizeCareers(data, interests = []) {
+      if (!Array.isArray(data)) throw new Error("Career recommendations must be an array");
+      const normalized = data.slice(0, 3).map((item, i) => ({
+        name: String(item.name || item.title || `Career Path ${i + 1}`),
+        match: Math.max(50, Math.min(99, Number(item.match || item.matchPercent || 90 - i * 5))),
+        icon: String(item.icon || ["✦", "◇", "◎"][i]),
+        description: String(item.description || item.summary || "A practical path matched to your interests and current skills."),
+        steps: Array.isArray(item.steps || item.roadmap) ? (item.steps || item.roadmap).map(String).slice(0, 4) : ["Build fundamentals", "Complete projects", "Get feedback", "Apply for entry roles"],
+        skills: Array.isArray(item.skills) ? item.skills.map(String).slice(0, 6) : ["Communication", "Problem solving", "Portfolio"],
+        years: String(item.years || item.timeline || "1-2")
+      }));
+      return normalized.length === 3 ? normalized : sampleCareers(interests);
+    }
+
+    function Navbar() {
+      const { setCopilotOpen } = useApp();
+      const nav = [["Home", "hero"], ["Study", "study"], ["Career", "career"], ["Quizzes", "quiz"], ["My Plan", "plan"]];
+      const go = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      return (
+        <nav className="fixed top-4 left-0 right-0 px-4 md:px-8 lg:px-16 z-50 flex items-center justify-between pointer-events-none">
+          <button onClick={() => go("hero")} className="pointer-events-auto liquid-glass w-12 h-12 rounded-full flex items-center justify-center text-white font-heading italic text-2xl">S</button>
+          <div className="hidden md:flex pointer-events-auto liquid-glass rounded-full px-1.5 py-1.5 items-center gap-1">
+            {nav.map(([label, id]) => <button key={id} onClick={() => go(id)} className="px-3 py-2 text-sm font-medium text-white/90 font-body">{label}</button>)}
+            <button onClick={() => setCopilotOpen(true)} className="bg-white text-black rounded-full px-4 py-2 text-sm font-medium flex items-center gap-2">
+              Get Started Free <Icon name="arrow" className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="w-12 h-12 invisible" />
+        </nav>
+      );
+    }
+
+    function HeroSection() {
+      const { setCopilotOpen } = useApp();
+      const item = (delay) => ({ initial: { filter: "blur(10px)", opacity: 0, y: 20 }, animate: { filter: "blur(0px)", opacity: 1, y: 0 }, transition: { delay, duration: .7, ease: "easeOut" } });
+      const stats = [
+        ["brain", "94%", "Students improved grades"],
+        ["clock", "2.4M+", "Study hours logged"],
+        ["route", "500+", "Career paths mapped"],
+        ["star", "4.9★", "Average student rating"]
+      ];
+      return (
+        <section id="hero" className="relative min-h-screen overflow-hidden hero-fallback animate-mesh flex flex-col">
+          <FadingVideo src="https://cdn.coverr.co/videos/coverr-space-cosmos-3408/1080p.mp4" className="absolute left-1/2 top-0 -translate-x-1/2 object-cover object-center z-0" style={{ width: "120%", height: "120%" }} />
+          <div className="relative z-10 flex flex-col min-h-screen">
+            <Navbar />
+            <div className="flex-1 flex flex-col items-center justify-center text-center pt-24 px-4">
+              <motion.div {...item(.4)} className="liquid-glass rounded-full px-3 py-2 flex items-center gap-3 text-xs md:text-sm text-white/80">
+                <span className="bg-white text-black rounded-full px-3 py-1 font-medium">AI-Powered</span>
+                Your 24×7 Study Partner & Career Mentor
+              </motion.div>
+              <BlurText text="Learn Smarter. Grow Faster. Build Your Future." className="mt-6 text-6xl md:text-7xl lg:text-[5.5rem] font-heading italic text-white leading-[0.85] max-w-3xl justify-center tracking-[-3px]" />
+              <motion.p {...item(.8)} className="mt-4 text-sm md:text-base text-white/80 max-w-2xl font-body font-light leading-relaxed">
+                From concept to career — get instant explanations, personalized study plans, adaptive quizzes, and AI-driven career roadmaps. All in one intelligent copilot.
+              </motion.p>
+              <motion.div {...item(1.1)} className="flex items-center gap-6 mt-8">
+                <button onClick={() => setCopilotOpen(true)} className="liquid-glass-strong rounded-full px-6 py-3 text-sm font-medium text-white glass-hover">Launch Copilot →</button>
+                <button className="text-white text-sm flex items-center gap-2"><Icon name="play" filled className="w-4 h-4" /> Watch Demo</button>
+              </motion.div>
+              <motion.div {...item(1.3)} className="grid grid-cols-2 lg:flex items-stretch gap-4 mt-10">
+                {stats.map(([icon, number, label]) => (
+                  <div key={label} className="liquid-glass rounded-[1.25rem] p-5 w-[150px] sm:w-[180px] text-left glass-hover">
+                    <Icon name={icon} className="w-5 h-5 text-white/80" />
+                    <div className="font-heading italic text-4xl text-white mt-5">{number}</div>
+                    <div className="text-xs text-white/60 font-body mt-1">{label}</div>
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+            <motion.div {...item(1.4)} className="pb-8 px-4 text-center">
+              <div className="liquid-glass inline-block rounded-full px-4 py-2 text-xs text-white/60">Trusted by students at top institutions</div>
+              <div className="mt-5 flex flex-wrap justify-center gap-8 md:gap-12 font-heading italic text-white text-2xl">
+                {["Oxford", "Stanford", "IIT", "MIT", "NUS"].map(x => <span key={x}>{x}</span>)}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      );
+    }
+
+    function ModeTabs() {
+      const { copilotMode, setCopilotMode } = useApp();
+      const tabs = [["study", "📚 Study"], ["quiz", "🎯 Quiz"], ["career", "🗺 Career"], ["plan", "📅 Plan"]];
+      return <div className="flex gap-2 flex-wrap">{tabs.map(([mode, label]) => (
+        <button key={mode} onClick={() => setCopilotMode(mode)} className={`${copilotMode === mode ? "liquid-glass-strong glow-accent text-white" : "liquid-glass text-white/60"} rounded-full px-3 py-2 text-xs`}>{label}</button>
+      ))}</div>;
+    }
+
+    function TypingIndicator() {
+      return <div className="liquid-glass-strong rounded-[1rem] px-4 py-3 max-w-[80%] flex gap-1.5">
+        {[0,1,2].map(i => <span key={i} className="w-2 h-2 bg-white rounded-full animate-dots" style={{ animationDelay: `${i * .16}s` }} />)}
+      </div>;
+    }
+
+    function QuizCard({ data }) {
+      let parsed = null;
+      try { parsed = parseJSONLoose(data); } catch { return <div className="whitespace-pre-wrap">{data}</div>; }
+      if (!Array.isArray(parsed)) return <div className="whitespace-pre-wrap">{data}</div>;
+      return <div className="space-y-3">{parsed.slice(0, 5).map((q, i) => (
+        <div key={i} className="liquid-glass rounded-[1rem] p-3">
+          <div className="font-heading italic text-xl">{i + 1}. {q.question}</div>
+          <div className="mt-2 grid gap-1 text-xs text-white/70">{(q.options || []).map((o, j) => <span key={j}>{String.fromCharCode(65+j)}. {o}</span>)}</div>
+        </div>
+      ))}</div>;
+    }
+
+    function StudyPlanCard({ data }) {
+      let parsed = null;
+      try { parsed = parseJSONLoose(data); } catch { return <div className="whitespace-pre-wrap">{data}</div>; }
+      if (!Array.isArray(parsed)) return <div className="whitespace-pre-wrap">{data}</div>;
+      return <div className="grid gap-2">{parsed.slice(0, 7).map((d, i) => (
+        <div key={i} className="liquid-glass rounded-[.85rem] p-3">
+          <div className="text-white font-medium text-xs">{d.day} · {d.subject} · {d.duration}</div>
+          <div className="text-white/60 text-xs mt-1">{(d.tasks || []).join(", ")}</div>
+        </div>
+      ))}</div>;
+    }
+
+    function CopilotChat({ compact = false }) {
+      const { messages, isLoading, copilotMode, callAnthropic, apiStatus } = useApp();
+      const [input, setInput] = useState("");
+      const listRef = useRef(null);
+      useEffect(() => {
+        if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+      }, [messages, isLoading]);
+      const send = async (text = input) => {
+        if (!text.trim() || isLoading) return;
+        setInput("");
+        await callAnthropic({ mode: copilotMode, prompt: text });
+      };
+      window.CopilotChatSend = send;
+      const statusText = !apiStatus.checked ? "Checking AI" : apiStatus.online && apiStatus.configured ? "Live AI" : apiStatus.online ? "Add API key" : "Demo mode";
+      return (
+        <div className={`liquid-glass-strong rounded-[1.5rem] p-4 md:p-6 ${compact ? "h-full" : "h-[600px]"} flex flex-col`}>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <ModeTabs />
+            <div className="liquid-glass rounded-full px-3 py-2 text-[10px] text-white/60 whitespace-nowrap flex items-center gap-2">
+              <span className={`w-1.5 h-1.5 rounded-full ${apiStatus.online && apiStatus.configured ? "bg-white" : "bg-white/35"}`} />
+              {statusText}
+            </div>
+          </div>
+          <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-hide space-y-3 pr-1">
+            {messages.length === 0 && <div className="h-full flex items-center justify-center text-center text-white/35 font-heading italic text-2xl px-6">Ask for an explanation, a quiz, a roadmap, or a weekly plan.</div>}
+            {messages.map((m, i) => (
+              <motion.div key={i} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: .3 }} className={`${m.role === "user" ? "ml-auto liquid-glass text-white" : "liquid-glass-strong text-white/90"} rounded-[1rem] px-4 py-3 text-sm max-w-[80%] whitespace-pre-wrap`}>
+                {m.role === "assistant" && copilotMode === "quiz" ? <QuizCard data={m.content} /> : m.role === "assistant" && copilotMode === "plan" ? <StudyPlanCard data={m.content} /> : m.content}
+              </motion.div>
+            ))}
+            {isLoading && <TypingIndicator />}
+          </div>
+          <div className="flex gap-3 mt-4 items-end">
+            <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Ask your copilot..." className="liquid-glass rounded-[1rem] flex-1 px-4 py-3 text-sm text-white bg-transparent resize-none min-h-[44px] max-h-[120px] placeholder:text-white/35" />
+            <button onClick={() => send()} className="liquid-glass-strong w-11 h-11 rounded-full flex items-center justify-center shrink-0 glass-hover"><Icon name="send" className="w-4 h-4" /></button>
+            <button className="liquid-glass w-11 h-11 rounded-full flex items-center justify-center shrink-0 glass-hover"><Icon name="mic" className="w-4 h-4" /></button>
+          </div>
+        </div>
+      );
+    }
+    window.CopilotChat = CopilotChat;
+
+    function SectionHeader({ kicker, a, b }) {
+      return <div>
+        <div className="text-xs text-white/60 font-body tracking-[0.2em] uppercase">{kicker}</div>
+        <h2 className="mt-4 font-heading italic text-white text-6xl md:text-[6rem] leading-[0.9] tracking-[-3px]"><span className="block">{a}</span><span className="block">{b}</span></h2>
+      </div>;
+    }
+
+    function StudySection() {
+      const { setCopilotMode, callAnthropic } = useApp();
+      const topics = ["Mathematics", "Physics", "Chemistry", "Biology", "History", "Literature", "Computer Science", "Economics"];
+      const icons = ["∑", "⚛", "⚗", "🧬", "🏛", "✒", "⌘", "◈"];
+      const quick = async (subject) => {
+        setCopilotMode("study");
+        await callAnthropic({ mode: "study", prompt: `Explain ${subject} basics` });
+      };
+      return (
+        <section id="study" className="relative min-h-screen study-fallback animate-mesh overflow-hidden section-shell">
+          <FadingVideo src="https://cdn.coverr.co/videos/coverr-typing-on-a-laptop-6957/1080p.mp4" className="absolute inset-0 w-full h-full object-cover z-0" />
+          <div className="relative z-10 px-6 md:px-16 pt-24 pb-10 flex flex-col min-h-screen">
+            <SectionHeader kicker="// Study Intelligence" a="Learn" b="anything." />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-16">
+              <div className="lg:col-span-3"><CopilotChat /></div>
+              <div className="lg:col-span-2">
+                <div className="text-xs text-white/60 mb-3">Quick topics</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {topics.map((t, i) => <button key={t} onClick={() => quick(t)} className="liquid-glass rounded-[1rem] p-4 cursor-pointer glass-hover text-center">
+                    <div className="text-3xl">{icons[i]}</div>
+                    <div className="text-xs text-white/80 mt-2 font-body">{t}</div>
+                  </button>)}
+                </div>
+                <div className="mt-6">
+                  <div className="text-xs text-white/60 mb-3">Recent sessions</div>
+                  {["Organic chemistry naming", "Linear algebra vectors", "Essay outline polish"].map((s, i) => (
+                    <div key={s} className="liquid-glass rounded-[1rem] p-3 flex items-center gap-3 mb-3">
+                      <span className="w-2 h-2 rounded-full bg-violet-300 animate-pulse" />
+                      <div className="flex-1 text-xs text-white">{s}</div>
+                      <div className="text-xs text-white/40">{i + 2}h</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function QuizSection() {
+      const { callAnthropic, quizData, setQuizData, quizScore, setQuizScore, setCopilotOpen, setCopilotMode } = useApp();
+      const [topic, setTopic] = useState("");
+      const [selected, setSelected] = useState(null);
+      const [results, setResults] = useState([]);
+      const generate = async () => {
+        const quizTopic = topic || "General science";
+        const text = await callAnthropic({ mode: "quiz", prompt: `Create a quiz about: ${quizTopic}`, silent: true });
+        let parsed;
+        try { parsed = normalizeQuiz(parseJSONLoose(text), quizTopic); } catch { parsed = sampleQuiz(quizTopic); }
+        setQuizData(parsed);
+        setQuizScore({ correct: 0, total: parsed.length, current: 0 });
+        setSelected(null);
+        setResults([]);
+      };
+      const q = quizData?.[quizScore.current];
+      const choose = (opt) => {
+        if (selected) return;
+        const correct = opt === q.answer;
+        setSelected(opt);
+        setResults(prev => [...prev, { question: q.question, correct, explanation: q.explanation }]);
+        setQuizScore(prev => ({ ...prev, correct: prev.correct + (correct ? 1 : 0) }));
+      };
+      const next = () => {
+        if (quizScore.current + 1 >= quizScore.total) setQuizScore(prev => ({ ...prev, current: prev.total }));
+        else { setQuizScore(prev => ({ ...prev, current: prev.current + 1 })); setSelected(null); }
+      };
+      const reset = () => { setQuizData(null); setSelected(null); setResults([]); setQuizScore({ correct: 0, total: 0, current: 0 }); };
+      const suggestions = ["Newton's Laws", "DNA & Genetics", "French Revolution", "Algebra", "Python Basics", "Climate Change"];
+      const done = quizData && quizScore.current >= quizScore.total;
+      const pct = quizScore.total ? quizScore.correct / quizScore.total : 0;
+      return (
+        <section id="quiz" className="min-h-screen quiz-bg px-6 md:px-16 pt-24 pb-16 section-shell">
+          <SectionHeader kicker="// Quiz Engine" a="Test your" b="knowledge." />
+          <div className="max-w-3xl mx-auto mt-16">
+            {!quizData && <div className="liquid-glass-strong rounded-[2rem] p-8 md:p-10 text-center">
+              <h3 className="font-heading italic text-4xl text-white">What shall we test today?</h3>
+              <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g. Quadratic equations, World War II, Photosynthesis..." className="liquid-glass rounded-full px-6 py-4 text-white text-sm w-full mt-6 bg-transparent placeholder:text-white/35" />
+              <button onClick={generate} className="liquid-glass-strong rounded-full px-8 py-3 text-white text-sm mt-4 glass-hover">Generate Quiz →</button>
+              <div className="flex gap-3 flex-wrap justify-center mt-6">{suggestions.map(s => <button key={s} onClick={() => setTopic(s)} className="liquid-glass rounded-full px-4 py-2 text-xs text-white/70">{s}</button>)}</div>
+            </div>}
+            {quizData && !done && q && <div>
+              <div className="liquid-glass rounded-full h-1.5 w-full mb-8"><div className="bg-white/80 rounded-full h-full transition-all" style={{ width: `${(quizScore.current / quizScore.total) * 100}%` }} /></div>
+              <div className="liquid-glass-strong rounded-[1.5rem] p-8">
+                <div className="text-xs text-white/60 font-body">Question {quizScore.current + 1} of {quizScore.total}</div>
+                <div className="font-heading italic text-white text-3xl leading-snug mt-2">{q.question}</div>
+                <div className="grid grid-cols-1 gap-3 mt-8">
+                  {(q.options || []).map(opt => <button key={opt} onClick={() => choose(opt)} className={`liquid-glass rounded-[1rem] px-5 py-4 text-sm text-white/90 font-body cursor-pointer text-left glass-hover ${selected && opt === q.answer ? "answer-correct" : ""} ${selected === opt && opt !== q.answer ? "answer-wrong" : ""}`}>{opt}</button>)}
+                </div>
+                <AnimatePresence>{selected && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-white/70 text-sm mt-4">{q.explanation}</motion.div>}</AnimatePresence>
+                {selected && <button onClick={next} className="block liquid-glass-strong rounded-full px-6 py-2.5 text-white text-sm mt-6 ml-auto glass-hover">{quizScore.current + 1 === quizScore.total ? "See Results" : "Next Question →"}</button>}
+              </div>
+            </div>}
+            {done && <div className="liquid-glass-strong rounded-[2rem] p-8 text-center">
+              <div className="w-[140px] h-[140px] liquid-glass-strong rounded-full flex items-center justify-center mx-auto font-heading italic text-4xl text-white">{quizScore.correct}/{quizScore.total}</div>
+              <h3 className="font-heading italic text-4xl mt-6">{pct >= .8 ? "Excellent!" : pct >= .5 ? "Good job!" : "Keep practicing"}</h3>
+              <div className="mt-6 space-y-2 text-left">{results.map((r, i) => <div key={i} className="liquid-glass rounded-[1rem] p-3 text-sm text-white/75">{r.correct ? "✓" : "✗"} {r.question}<div className="text-xs text-white/45 mt-1">{r.explanation}</div></div>)}</div>
+              <div className="mt-6 flex justify-center gap-3 flex-wrap">
+                <button onClick={generate} className="liquid-glass rounded-full px-5 py-2 text-sm">Retry Quiz</button>
+                <button onClick={() => { setCopilotMode("study"); setCopilotOpen(true); }} className="liquid-glass-strong rounded-full px-5 py-2 text-sm">Study This Topic</button>
+                <button onClick={reset} className="liquid-glass rounded-full px-5 py-2 text-sm">New Quiz</button>
+              </div>
+            </div>}
+          </div>
+        </section>
+      );
+    }
+
+    function CareerSection() {
+      const { userProfile, setUserProfile, callAnthropic, setCopilotOpen, setCopilotMode } = useApp();
+      const [ratings, setRatings] = useState({ "Problem Solving": 0, Communication: 0, Technical: 0, Creative: 0, Analytical: 0 });
+      const [recs, setRecs] = useState(null);
+      const interests = ["Technology", "Design", "Medicine", "Finance", "Education", "Arts", "Engineering", "Law", "Science", "Business", "Psychology", "Environment"];
+      const toggle = (item) => setUserProfile(prev => ({ ...prev, interests: prev.interests.includes(item) ? prev.interests.filter(x => x !== item) : [...prev.interests, item] }));
+      const generate = async () => {
+        const prompt = `Return JSON only. Create exactly 3 career recommendations for this student.
+Interests: ${userProfile.interests.join(", ") || "not specified"}.
+Skill ratings out of 5: ${JSON.stringify(ratings)}.
+Schema: [{name, match, icon, description, steps:[string], skills:[string], years}].`;
+        const text = await callAnthropic({ mode: "career", prompt, silent: true });
+        let parsed;
+        try { parsed = normalizeCareers(parseJSONLoose(text), userProfile.interests); } catch { parsed = sampleCareers(userProfile.interests); }
+        setRecs(parsed);
+      };
+      return (
+        <section id="career" className="relative min-h-screen career-fallback overflow-hidden section-shell">
+          <FadingVideo src="https://cdn.coverr.co/videos/coverr-city-night-lights-6380/1080p.mp4" className="absolute inset-0 w-full h-full object-cover z-0" />
+          <div className="relative z-10 px-6 md:px-16 pt-24 pb-16">
+            <SectionHeader kicker="// Career Compass" a="Your path" b="starts here." />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-16 items-start">
+              <div className="liquid-glass-strong rounded-[1.5rem] p-8">
+                <div className="text-xs text-white/60">What excites you most?</div>
+                <div className="flex flex-wrap gap-2 mt-3">{interests.map(x => <button key={x} onClick={() => toggle(x)} className={`${userProfile.interests.includes(x) ? "liquid-glass-strong glow-accent text-white" : "liquid-glass text-white/80"} rounded-full px-4 py-2 text-sm cursor-pointer`}>{x}</button>)}</div>
+                {userProfile.interests.length >= 2 && <div className="mt-8">
+                  <div className="text-xs text-white/60 mb-3">Rate your current skills (1-5):</div>
+                  {Object.keys(ratings).map(skill => <div key={skill} className="flex items-center justify-between py-2">
+                    <span className="text-sm text-white/80">{skill}</span>
+                    <div>{[1,2,3,4,5].map(n => <button key={n} onClick={() => setRatings(prev => ({ ...prev, [skill]: n }))} className={`text-xl ${ratings[skill] >= n ? "text-white" : "text-white/30"}`}>★</button>)}</div>
+                  </div>)}
+                </div>}
+                <button onClick={generate} className="liquid-glass-strong w-full rounded-full py-3 text-white mt-8 glass-hover">Discover My Career Path →</button>
+              </div>
+              <div>
+                {!recs && <div className="liquid-glass rounded-[1.5rem] p-8 text-center">
+                  <Icon name="route" className="w-20 h-20 mx-auto text-white/40" />
+                  <div className="font-heading italic text-2xl text-white/40 mt-6">Complete the profile to reveal your paths</div>
+                </div>}
+                {recs && <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={{ show: { transition: { staggerChildren: .2 } } }} className="space-y-4">
+                  {recs.map(r => <motion.div key={r.name} variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }} className="liquid-glass-strong rounded-[1.5rem] p-6">
+                    <div className="flex items-center justify-between"><span className="text-3xl">{r.icon}</span><span className="liquid-glass rounded-full px-3 py-1 text-xs">{r.match}% match</span></div>
+                    <h3 className="font-heading italic text-2xl text-white mt-4">{r.name}</h3>
+                    <p className="text-sm text-white/80 font-body mt-2">{r.description}</p>
+                    <div className="mt-4 space-y-2">{r.steps.map((s, i) => <div key={s} className="flex items-start gap-3"><span className="liquid-glass w-6 h-6 rounded-full flex items-center justify-center text-xs text-white shrink-0">{i+1}</span><span className="text-sm text-white/70">{s}</span></div>)}</div>
+                    <div className="flex flex-wrap gap-2 mt-4">{r.skills.map(s => <span key={s} className="liquid-glass rounded-full px-3 py-1 text-xs text-white/70">{s}</span>)}</div>
+                    <div className="text-xs text-white/50 mt-3">⏱ {r.years} years to entry level</div>
+                    <button onClick={() => { setCopilotMode("career"); setCopilotOpen(true); }} className="liquid-glass-strong rounded-full px-4 py-2 text-xs text-white mt-4">Explore This Path →</button>
+                  </motion.div>)}
+                </motion.div>}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function PlanSection() {
+      const { studyPlan, setStudyPlan, callAnthropic } = useApp();
+      const [cfg, setCfg] = useState({ goal: "", subjects: [], hours: 3, date: "", style: "" });
+      const subjects = ["Maths", "Physics", "Chemistry", "Biology", "History", "English", "CS", "Economics"];
+      const styles = ["Morning Bird", "Night Owl", "Sprint Sessions", "Slow & Steady"];
+      const toggleSubject = (s) => setCfg(prev => ({ ...prev, subjects: prev.subjects.includes(s) ? prev.subjects.filter(x => x !== s) : [...prev.subjects, s] }));
+      const generate = async () => {
+        const text = await callAnthropic({ mode: "plan", prompt: `Build a 7-day plan for this configuration: ${JSON.stringify(cfg)}`, silent: true });
+        let parsed;
+        try { parsed = normalizePlan(parseJSONLoose(text), cfg.goal); }
+        catch { parsed = samplePlan(cfg.goal); }
+        setStudyPlan(parsed);
+      };
+      const total = studyPlan?.reduce((sum, d) => sum + (parseFloat(d.duration) || cfg.hours), 0) || 0;
+      return (
+        <section id="plan" className="min-h-screen plan-bg animate-mesh px-6 md:px-16 pt-24 pb-16 section-shell">
+          <SectionHeader kicker="// Study Planner" a="Own your" b="schedule." />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-16">
+            <div className="liquid-glass-strong rounded-[1.5rem] p-6">
+              <Field label="Goal"><input value={cfg.goal} onChange={e => setCfg({...cfg, goal: e.target.value})} placeholder="What are you preparing for?" className="liquid-glass rounded-[0.75rem] px-4 py-3 text-sm text-white bg-transparent w-full placeholder:text-white/35" /></Field>
+              <div className="mt-5"><div className="text-xs text-white/60 mb-2">Subjects</div><div className="flex flex-wrap gap-2">{subjects.map(s => <button key={s} onClick={() => toggleSubject(s)} className={`${cfg.subjects.includes(s) ? "liquid-glass-strong glow-accent" : "liquid-glass"} rounded-full px-3 py-2 text-xs text-white/80`}>{s}</button>)}</div></div>
+              <div className="mt-5"><div className="flex justify-between items-end"><label className="text-xs text-white/60">Hours/day</label><span className="font-heading italic text-2xl">{cfg.hours}</span></div><input type="range" min="1" max="12" value={cfg.hours} onChange={e => setCfg({...cfg, hours: e.target.value})} className="w-full mt-2" /></div>
+              <Field label="Target date"><input type="date" value={cfg.date} onChange={e => setCfg({...cfg, date: e.target.value})} className="liquid-glass rounded-[0.75rem] px-4 py-3 text-sm text-white bg-transparent w-full" /></Field>
+              <div className="mt-5"><div className="text-xs text-white/60 mb-2">Study style</div><div className="flex flex-wrap gap-2">{styles.map(s => <button key={s} onClick={() => setCfg({...cfg, style: s})} className={`${cfg.style === s ? "liquid-glass-strong glow-accent" : "liquid-glass"} rounded-full px-3 py-2 text-xs text-white/80`}>{s}</button>)}</div></div>
+              <button onClick={generate} className="liquid-glass-strong w-full rounded-full py-3 text-white mt-6 glass-hover">Build My Plan →</button>
+            </div>
+            <div className="lg:col-span-2">
+              {!studyPlan && <div className="font-heading italic text-2xl text-white/30 text-center mt-20">Your personalized schedule will appear here</div>}
+              {studyPlan && <div>
+                <motion.div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-2" initial="hidden" whileInView="show" viewport={{ once: true }}>
+                  {studyPlan.map((d, i) => <motion.div key={d.day} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .05 }} className="liquid-glass rounded-[1rem] p-3 min-h-[300px] flex flex-col">
+                    <div className="text-xs text-white/60 font-body">{String(d.day).slice(0,3).toUpperCase()}</div>
+                    <div className="mt-2 space-y-2 flex-1"><div className="liquid-glass-strong rounded-[0.75rem] px-3 py-2">
+                      <div className="text-xs text-white font-body font-medium">{d.subject}</div>
+                      <div className="text-xs text-white/60">{d.duration}</div>
+                      {(d.tasks || []).slice(0,2).map(t => <div key={t} className="text-[10px] text-white/50 truncate">• {t}</div>)}
+                    </div></div>
+                    <div className="text-xs text-white/40 mt-auto pt-2 border-t border-white/10">{d.duration}</div>
+                  </motion.div>)}
+                </motion.div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">{[["7 days", "This week"], [`${total}h`, "Total hours planned"], [new Set(studyPlan.map(d => d.subject)).size, "Subjects covered"]].map(([n,l]) => <div key={l} className="liquid-glass p-4 rounded-[1rem] text-center"><div className="font-heading italic text-3xl">{n}</div><div className="text-xs text-white/50">{l}</div></div>)}</div>
+              </div>}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Field({ label, children }) {
+      return <div className="mt-5"><label className="block text-xs text-white/60 mb-1">{label}</label>{children}</div>;
+    }
+
+    function CapabilitiesSection() {
+      const cards = [
+        ["light", "Instant Clarity", "Ask anything — from calculus to chemistry. Get clear explanations with examples in plain language, tailored to your level.", ["Instant Answers", "Any Subject", "Simple Language", "Examples"]],
+        ["quiz", "Adaptive Quizzes", "Quizzes that adjust to your knowledge gaps. Every wrong answer becomes a learning moment with targeted explanation.", ["Smart Difficulty", "Spaced Repetition", "Track Progress", "Instant Feedback"]],
+        ["map", "Career Mapping", "AI analyzes your interests and skills against live industry demand to chart the most realistic path to your dream career.", ["Real-World Data", "Skill Gaps", "Roadmaps", "Industry Aligned"]]
+      ];
+      return (
+        <section className="relative min-h-screen capabilities-fallback overflow-hidden section-shell">
+          <FadingVideo src="https://cdn.coverr.co/videos/coverr-desk-with-books-5830/1080p.mp4" className="absolute inset-0 w-full h-full object-cover z-0" />
+          <div className="relative z-10 px-6 md:px-16 pt-24 pb-16 min-h-screen flex flex-col">
+            <SectionHeader kicker="// Why Students Love It" a="Intelligence" b="meets learning." />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 flex-1">
+              {cards.map(([icon,title,body,tags]) => <div key={title} className="liquid-glass rounded-[1.5rem] p-6 min-h-[430px] flex flex-col glass-hover">
+                <div className="flex items-start justify-between gap-4">
+                  <Icon name={icon} className="w-9 h-9 text-white" />
+                  <div className="flex flex-wrap justify-end gap-2">{tags.map(t => <span key={t} className="liquid-glass rounded-full px-3 py-1 text-[10px] text-white/65">{t}</span>)}</div>
+                </div>
+                <div className="flex-1" />
+                <h3 className="font-heading italic text-4xl text-white">{title}</h3>
+                <p className="text-sm text-white/70 leading-relaxed mt-3">{body}</p>
+              </div>)}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function FloatingCopilot() {
+      const { copilotOpen, setCopilotOpen } = useApp();
+      return (
+        <>
+          <button onClick={() => setCopilotOpen(!copilotOpen)} className="fixed bottom-6 right-6 z-50 liquid-glass-strong w-12 h-12 rounded-full flex items-center justify-center glass-hover">
+            <span className="absolute inset-0 rounded-full border border-white/20 animate-ping" style={{ animationDuration: "2s" }} />
+            <Icon name="sparkle" className="w-5 h-5 relative z-10" />
+          </button>
+          <AnimatePresence>
+            {copilotOpen && <motion.div initial={{ y: 300, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 300, opacity: 0 }} transition={{ type: "spring", damping: 24, stiffness: 220 }} className="fixed bottom-20 right-4 md:right-6 z-50 liquid-glass-strong rounded-[1.5rem] w-[calc(100vw-2rem)] md:w-96 h-[560px] p-4">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <div className="font-heading italic text-xl">Study Copilot</div>
+                <button onClick={() => setCopilotOpen(false)} className="liquid-glass w-8 h-8 rounded-full flex items-center justify-center"><Icon name="close" className="w-4 h-4" /></button>
+              </div>
+              <div className="h-[calc(100%-44px)]"><CopilotChat compact /></div>
+            </motion.div>}
+          </AnimatePresence>
+        </>
+      );
+    }
+
+    function App() {
+      useSectionInView();
+      return (
+        <AppProvider>
+          <HeroSection />
+          <StudySection />
+          <QuizSection />
+          <CareerSection />
+          <PlanSection />
+          <CapabilitiesSection />
+          <FloatingCopilot />
+        </AppProvider>
+      );
+    }
+
+    window.App = App;
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
